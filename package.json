@@ -9,10 +9,13 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@angular/compiler-cli": "^18.2.6",
+    "@babel/core": "^7.25.2",
     "typescript": "^5.5.3",
     "vite": "^5.4.1"
   },
   "dependencies": {
-    "@angular/core": "^19.0.0-next.7"
+    "@angular/core": "^18.2.6",
+    "@angular/platform-browser": "^18.2.6"
   }
 }
