@@ -1,16 +1,80 @@
+import {
+  parseTemplate,
+  ConstantPool,
+  makeBindingParser,
+  SelectorMatcher,
+  DEFAULT_INTERPOLATION_CONFIG,
+  compileComponentFromMetadata,
+  R3TargetBinder,
+  WrappedNodeExpr,
+} from "@angular/compiler";
+
+const template = parseTemplate("<h1>{{ name() }}</h1>", "file:///tpl.html", {});
+console.log(template);
+
+const binder = new R3TargetBinder(new SelectorMatcher());
+const boundTarget = binder.bind({ template: template.nodes });
+const deferBlockDependencies = undefined;
+const meta = {
+  relativeContextFilePath: "/some/filename",
+  template,
+  interpolation: DEFAULT_INTERPOLATION_CONFIG,
+  defer: createR3ComponentDeferMetadata(boundTarget, deferBlockDependencies),
+  type: {
+    value: "???",
+  },
+  queries: [],
+  viewQueries: [],
+  host: {
+    properties: [],
+    listeners: {},
+    attributes: {},
+    specialAttributes: {},
+  },
+  inputs: {},
+  outputs: {},
+  exportAs: [],
+  lifecycle: {},
+  declarations: [],
+  selector: "app-root",
+};
+const constantPool = new ConstantPool();
+const bindingParser = makeBindingParser(meta.interpolation);
+const res = compileComponentFromMetadata(meta, constantPool, bindingParser);
+console.log(res);
+
+function createR3ComponentDeferMetadata(boundTarget, deferBlockDependencies) {
+  const deferredBlocks = boundTarget.getDeferBlocks();
+  const blocks = new Map();
+
+  for (let i = 0; i < deferredBlocks.length; i++) {
+    const dependencyFn = deferBlockDependencies?.[i];
+    blocks.set(
+      deferredBlocks[i],
+      dependencyFn ? new WrappedNodeExpr(dependencyFn) : null
+    );
+  }
+
+  return { mode: 0 /* DeferBlockDepsEmitMode.PerBlock */, blocks };
+}
+
 const shortFileRegex = /\.component$/;
 const fileRegex = /\.component\.html\?ng-component$/;
 
 export default function ngComponent() {
   return {
-    name: 'ng-component',
+    name: "ng-component",
 
     resolveId: {
-      order: 'pre',
+      order: "pre",
       async handler(source, importer, options) {
         // Redirect component imports to the implementation template.
         if (shortFileRegex.test(source)) {
-          const resolution = await this.resolve(`${source}.html`, importer, options);
+          const resolution = await this.resolve(
+            `${source}.html`,
+            importer,
+            options
+          );
           if (!resolution || resolution.external) {
             return resolution;
           }
@@ -22,9 +86,9 @@ export default function ngComponent() {
 
     transform(code, id) {
       if (fileRegex.test(id)) {
-        const scriptId = id.replace(fileRegex, '.component.ts');
+        const scriptId = id.replace(fileRegex, ".component.ts");
         // TODO: Detect the correct class name.
-        const className = 'AppComponent';
+        const className = "AppComponent";
         // TODO: Compile template properly.
         return `
 import {
