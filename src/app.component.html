@@ -1,7 +1,9 @@
-<h1>{{ title() }}</h1>
+<h1>{{ title }}</h1>
 
-@let hasTitle = !!title();
+<button (click)="toggleDetails()">Show/hide details</button>
 
-@if (hasTitle) {
+@let showMore = isDetailsEnabled();
+
+@if (showMore) {
   <static-message />
 }
