@@ -1,3 +1,7 @@
 <h1>{{ title() }}</h1>
 
-<span>Some more (static) content.</span>
+@let hasTitle = !!title();
+
+@if (hasTitle) {
+  <span>Some more (static) content.</span>
+}
