@@ -1,11 +1,15 @@
 import './style.css';
 
 import { AppComponent } from './app.component';
-import { bootstrapApplication } from '@angular/platform-browser';
+import { createApplication } from '@angular/platform-browser';
 import { provideExperimentalZonelessChangeDetection } from '@angular/core';
 
-bootstrapApplication(AppComponent, {
-  providers: [
-    provideExperimentalZonelessChangeDetection(),
-  ],
-});
+(async () => {
+  const app = await createApplication({
+    providers: [
+      provideExperimentalZonelessChangeDetection(),
+    ],
+  });
+
+  app.bootstrap(AppComponent, 'div#app-root');
+})();
