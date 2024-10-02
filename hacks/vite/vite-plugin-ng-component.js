@@ -9,9 +9,10 @@ import {
   WrappedNodeExpr,
   EmitterVisitorContext,
 } from "@angular/compiler";
+import { ViewEncapsulation } from "@angular/core";
+import {readFile} from 'node:fs/promises';
 
 import { JitEmitterVisitor } from "./template-compiler.js";
-import { ViewEncapsulation } from "@angular/core";
 
 const shortFileRegex = /\.(component|ng)$/;
 const fileRegex = /\.(component|ng)\.html\?ng-component$/;
@@ -39,12 +40,15 @@ export default function ngComponent() {
       },
     },
 
-    transform(code, id) {
+    async transform(code, id) {
       if (fileRegex.test(id)) {
         const scriptId = id.replace(fileRegex, ".$1.ts");
-        // TODO: Detect the correct class name.
-        const className = "AppComponent";
-        const selector = "app-root";
+        // TODO: Find a cleaner way to handle metadata.
+        const scriptSource = await readFile(scriptId, 'utf8');
+        // export class MessageComponent
+        const className = scriptSource.match(/^export class (\w+)/m)[1];
+        // static selector = 'static-message';
+        const selector = scriptSource.match(/^[ ]*static selector = ['"]([^'"]+)['"];/m)[1];
 
         const template = parseTemplate(code, id, {});
         if (template.errors) {
@@ -70,6 +74,13 @@ export default function ngComponent() {
           }
         }
 
+        // TODO: Cleanly handle imports, including deduping.
+        const declarations = className === 'AppComponent' ?
+          [{
+            type: new WrappedNodeExpr('MessageComponent'),
+            moduleName: './message.component',
+          }] : [];
+
         const meta = {
           name: className,
           // This is likely the wrong path.
@@ -90,11 +101,12 @@ export default function ngComponent() {
             specialAttributes: {},
           },
           inputs: {},
+          declarationListEmitMode: 0 /* Direct */,
+          declarations,
           outputs: {},
           exportAs: [],
           lifecycle: {},
           isStandalone: true,
-          declarations: [],
           selector,
           animations: null,
           encapsulation: ViewEncapsulation.Emulated,
@@ -118,6 +130,7 @@ export default function ngComponent() {
         // TODO: Compile template properly.
         return `
 import { ${[...coreImports].join(", ")} } from '@angular/core';
+${declarations.map(decl => `import {${decl.type.node}} from '${decl.moduleName}';`).join('\n')}
 
 import {${className}} from ${JSON.stringify(scriptId)};
 
