@@ -11,5 +11,5 @@ import { provideExperimentalZonelessChangeDetection } from '@angular/core';
     ],
   });
 
-  app.bootstrap(AppComponent, 'div#app-root');
+  app.bootstrap(AppComponent, 'div#app');
 })();
