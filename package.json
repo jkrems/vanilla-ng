@@ -9,6 +9,9 @@
     "preview": "vite preview",
     "test:browser": "vitest --workspace=vitest.workspace.ts"
   },
+  "imports": {
+    "#angular/platform-browser-dynamic/testing-init": "./hacks/platform-browser-dynamic/testing.ts"
+  },
   "devDependencies": {
     "@angular/compiler-cli": "^18.2.6",
     "@angular/platform-browser-dynamic": "^18.2.6",
