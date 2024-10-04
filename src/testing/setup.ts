@@ -6,8 +6,6 @@ import {
 } from "@angular/platform-browser-dynamic/testing";
 import { beforeAll, afterEach } from "vitest";
 
-export * from "@angular/core/testing";
-
 beforeAll(() => {
   TestBed.initTestEnvironment(
     {

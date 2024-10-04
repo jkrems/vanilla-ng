@@ -1,5 +1,5 @@
 import { expect, test, beforeEach } from "vitest";
-import { ComponentFixture, TestBed } from "#angular/platform-browser-dynamic/testing-init";
+import { ComponentFixture, TestBed } from "@angular/core/testing";
 
 import { AppComponent } from "./app.component";
 

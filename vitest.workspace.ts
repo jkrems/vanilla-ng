@@ -6,6 +6,9 @@ export default defineWorkspace([
   {
     extends: 'vite.config.js',
     test: {
+      setupFiles: [
+        './src/testing/setup.ts',
+      ],
       browser: {
         enabled: true,
         headless: true,
