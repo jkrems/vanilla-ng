@@ -12,7 +12,7 @@ import {
 import { ViewEncapsulation } from "@angular/core";
 import {readFile} from 'node:fs/promises';
 
-import { JitEmitterVisitor } from "./template-compiler.js";
+import { JitEmitterVisitor } from "../ng/template-compiler.js";
 
 const shortFileRegex = /\.(component|ng)$/;
 const fileRegex = /\.(component|ng)\.html\?ng-component$/;
