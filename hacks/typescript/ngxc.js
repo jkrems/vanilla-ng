@@ -247,7 +247,7 @@ export function stripTSX(fileName, sourceText) {
           exportAs: [],
           lifecycle: {},
           isStandalone: true,
-          isSignal: true,
+          isSignal: false,
           selector,
           animations: null,
           encapsulation: ViewEncapsulation.Emulated,

@@ -110,7 +110,7 @@ export default function ngComponent() {
           exportAs: [],
           lifecycle: {},
           isStandalone: true,
-          isSignal: true,
+          isSignal: false,
           selector,
           animations: null,
           encapsulation: ViewEncapsulation.Emulated,
