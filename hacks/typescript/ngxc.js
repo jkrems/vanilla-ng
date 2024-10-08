@@ -1,4 +1,4 @@
-import ts from "typescript";
+import * as ts from "typescript";
 import {
   parseTemplate,
   ConstantPool,
@@ -13,20 +13,20 @@ import {
 import { ViewEncapsulation } from "@angular/core";
 
 import { JitEmitterVisitor } from "../ng/template-compiler.js";
+import { TypeScriptEmitterVisitor } from "../ng/ts-emitter.js";
 
-const program = ts.createProgram(
-  [import.meta.dirname + "/example/my-comp.ng.tsx"],
-  {
-    strict: true,
-    types: [],
-  },
-  ts.createCompilerHost({}, true)
-);
-
-for (const src of program.getSourceFiles()) {
-  if (!src.fileName.endsWith(".ng.tsx")) {
-    continue;
-  }
+/**
+ * @param {string} fileName
+ * @param {string} sourceText
+ */
+export function stripTSX(fileName, sourceText) {
+  const src = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.ESNext,
+    true,
+    ts.ScriptKind.TSX
+  );
 
   function findEnclosingFunction(node) {
     while (node.parent) {
@@ -56,7 +56,8 @@ for (const src of program.getSourceFiles()) {
           if (
             ts.isPropertyAccessExpression(node) &&
             ts.isIdentifier(node.expression) &&
-            node.expression.escapedText === "ctx"
+            // ctx_r0
+            /^ctx(_r[\d]+)?$/.test(node.expression.escapedText)
           ) {
             return node.name;
           }
@@ -66,6 +67,60 @@ for (const src of program.getSourceFiles()) {
     }
 
     return ts.visitNode(tplNode, visitor);
+  }
+
+  function patchDefComponentCall(originalNode) {
+    let templateNode;
+
+    function visitor(node, context) {
+      switch (node.kind) {
+        case ts.SyntaxKind.PropertyAssignment:
+          if (
+            ts.isPropertyAssignment(node) &&
+            node.name.escapedText === "template"
+          ) {
+            templateNode = cleanUpTemplate(node.initializer);
+            const newInit = ts.factory.createFunctionExpression(
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              [
+                ts.factory.createParameterDeclaration(
+                  undefined,
+                  undefined,
+                  "ref"
+                ),
+                ts.factory.createParameterDeclaration(
+                  undefined,
+                  undefined,
+                  "ctx"
+                ),
+              ],
+              undefined,
+              ts.factory.createBlock([
+                ts.factory.createReturnStatement(
+                  ts.factory.createCallExpression(
+                    ts.factory.createIdentifier("ctx"),
+                    undefined,
+                    [ts.factory.createIdentifier("ref")]
+                  )
+                ),
+              ])
+            );
+            return ts.factory.updatePropertyAssignment(
+              node,
+              node.name,
+              newInit
+            );
+          }
+          break;
+      }
+      return ts.visitEachChild(node, visitor, context);
+    }
+
+    const defNode = ts.visitNode(originalNode, visitor);
+    return { defNode, templateNode };
   }
 
   const metaByFunction = new Map();
@@ -108,8 +163,7 @@ for (const src of program.getSourceFiles()) {
           break;
         }
         const transformed = ts.visitEachChild(node, visitor, context);
-        const meta = metaByFunction.get(node);
-        coreImports.add("ɵɵdefineComponent");
+        const defNode = metaByFunction.get(node);
         return [
           transformed,
           ts.factory.createExpressionStatement(
@@ -118,80 +172,7 @@ for (const src of program.getSourceFiles()) {
                 transformed.name,
                 "ɵcmp"
               ),
-              ts.factory.createCallExpression(
-                ts.factory.createIdentifier("ɵɵdefineComponent"),
-                undefined,
-                [
-                  // TODO: Use proper AST-ish things here instead of hand-writing.
-                  ts.factory.createObjectLiteralExpression(
-                    [
-                      ts.factory.createPropertyAssignment(
-                        "type",
-                        transformed.name
-                      ),
-                      ts.factory.createPropertyAssignment(
-                        "selectors",
-                        ts.factory.createArrayLiteralExpression([
-                          ts.factory.createArrayLiteralExpression([
-                            ts.factory.createStringLiteral(meta.selector),
-                          ]),
-                        ])
-                      ),
-                      ts.factory.createPropertyAssignment(
-                        "exportAs",
-                        ts.factory.createArrayLiteralExpression([])
-                      ),
-                      ts.factory.createPropertyAssignment(
-                        "template",
-                        ts.factory.createArrowFunction(
-                          undefined,
-                          undefined,
-                          [
-                            ts.factory.createParameterDeclaration(
-                              undefined,
-                              undefined,
-                              ts.factory.createIdentifier("rf")
-                            ),
-                            ts.factory.createParameterDeclaration(
-                              undefined,
-                              undefined,
-                              ts.factory.createIdentifier("ctx")
-                            ),
-                          ],
-                          undefined,
-                          undefined,
-                          ts.factory.createCallExpression(ts.factory.createIdentifier('ctx'), undefined, [ts.factory.createIdentifier('rf')])
-                        )
-                      ),
-                      /*
-ɵɵdefineComponent({type:MyComp,
-selectors:[['my-comp']],exportAs:[],standalone:true,
-    signals:true,features:[ɵɵStandaloneFeature],decls:5,vars:2,consts:[[3,'click']],
-    template:function MyComp_Template(rf,ctx) {
-      if ((rf & 1)) {
-        ɵɵtemplate(0,MyComp_Conditional_0_Template,2,0,'p');
-        ɵɵelementStart(1,'h1');
-        ɵɵtext(2);
-        ɵɵelementEnd();
-        ɵɵelementStart(3,'button',0);
-        ɵɵlistener('click',function MyComp_Template_button_click_3_listener() {
-          return ctx.inc;
-        });
-        ɵɵtext(4,'Increment');
-        ɵɵelementEnd();
-      }
-      if ((rf & 2)) {
-        ɵɵconditional(((ctx.count() > 20)? 0: -1));
-        ɵɵadvance(2);
-        ɵɵtextInterpolate(ctx.count());
-      }
-    },encapsulation:2})
-*/
-                    ],
-                    true
-                  ),
-                ]
-              )
+              defNode
             )
           ),
           ts.factory.createExpressionStatement(
@@ -271,7 +252,6 @@ selectors:[['my-comp']],exportAs:[],standalone:true,
           animations: null,
           encapsulation: ViewEncapsulation.Emulated,
         };
-        metaByFunction.set(compFn, meta);
 
         const constantPool = new ConstantPool();
         const bindingParser = makeBindingParser(meta.interpolation);
@@ -280,6 +260,14 @@ selectors:[['my-comp']],exportAs:[],standalone:true,
           constantPool,
           bindingParser
         );
+
+        const tsVisitor = new TypeScriptEmitterVisitor(
+          new ExternalReferenceResolver()
+        );
+        const originalDefNode = res.expression.visitExpression(tsVisitor);
+        const { defNode, templateNode } =
+          patchDefComponentCall(originalDefNode);
+        metaByFunction.set(compFn, defNode);
 
         const visitor = new JitEmitterVisitor(new ExternalReferenceResolver());
         const visitorContext = new EmitterVisitorContext(0);
@@ -292,23 +280,14 @@ selectors:[['my-comp']],exportAs:[],standalone:true,
         const fullDefContext = new EmitterVisitorContext(0);
         visitor.visitAllExpressions([res.expression], fullDefContext);
 
-        const constantVisitorContext = new EmitterVisitorContext(0);
-        visitor.visitAllStatements(
-          constantPool.statements,
-          constantVisitorContext
-        );
-        const tplSrc = cleanUpTemplate(
-          ts.createSourceFile(
-            "tpl.ts",
-            `function ___() {
-  ${constantVisitorContext.toSource()}
-
-  return ${visitorContext.toSource()};
-}`
-          )
-        );
+        const tplStatements = tsVisitor
+          .visitAllStatements(constantPool.statements)
+          .map((stmt) => cleanUpTemplate(stmt));
         // Replace with new return value.
-        return tplSrc.statements[tplSrc.statements.length - 1].body.statements;
+        return [
+          ...tplStatements,
+          ts.factory.createReturnStatement(templateNode),
+        ];
       }
     }
 
@@ -317,7 +296,7 @@ selectors:[['my-comp']],exportAs:[],standalone:true,
 
   const newSrc = ts.visitNode(src, visitor);
   const printer = ts.createPrinter();
-  console.error(printer.printFile(newSrc));
+  return printer.printFile(newSrc);
 }
 
 function createR3ComponentDeferMetadata(boundTarget, deferBlockDependencies) {

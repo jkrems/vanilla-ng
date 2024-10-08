@@ -79,6 +79,9 @@ export default function ngComponent() {
           [{
             type: new WrappedNodeExpr('MessageComponent'),
             moduleName: './message.component',
+          },{
+            type: new WrappedNodeExpr('Counter'),
+            moduleName: './counter.ng',
           }] : [];
 
         const meta = {

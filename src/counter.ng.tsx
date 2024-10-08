@@ -1,6 +1,6 @@
 import {signal} from '@angular/core';
 
-export function MyComp() {
+export function Counter() {
   const count = signal(0);
 
   function inc() {
@@ -8,12 +8,13 @@ export function MyComp() {
   }
 
   return (
-    <my-comp>
+    <ngx-counter>
+      <h1>{count()}</h1>
+      <button on:click={inc()}>Increment</button>
       @if (count() < 10 || count() > 20) {
         <p>Take it slow, dude!</p>
+        <em>In if block: {count()}</em>
       }
-      <h1>{count()}</h1>
-      <button on:click={inc}>Increment</button>
-    </my-comp>
+    </ngx-counter>
   );
 }
