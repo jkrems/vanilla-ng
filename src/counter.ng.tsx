@@ -1,7 +1,7 @@
-import {signal} from '@angular/core';
+import {input, signal} from '@angular/core';
 
-export function Counter() {
-  const count = signal(0);
+export function Counter({initialValue = input(0)}) {
+  const count = signal(initialValue());
 
   function inc() {
     count.set(count() + 1);

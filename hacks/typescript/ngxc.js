@@ -181,7 +181,16 @@ export function stripTSX(fileName, sourceText) {
                 transformed.name,
                 "ɵfac"
               ),
-              transformed.name
+              ts.factory.createArrowFunction(
+                undefined,
+                undefined,
+                [],
+                undefined,
+                undefined,
+                ts.factory.createCallExpression(transformed.name, undefined, [
+                  ts.factory.createObjectLiteralExpression(),
+                ])
+              )
             )
           ),
         ];
