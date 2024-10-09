@@ -215,6 +215,7 @@ export function stripTSX(fileName, sourceText) {
         const selector = jsxNode.openingElement.tagName.escapedText;
         const patchedTplText = tplText
           .replace(/on:([a-z]+)=\{([^}]+)\}/g, '($1)="$2"')
+          .replace(/style:([\w-]+)=\{([^}]+)\}/g, '[style.$1]="$2"')
           .replace(/\{([^}\n]+)\}/g, "{{$1}}");
         const template = parseTemplate(patchedTplText);
         if (template.errors) {

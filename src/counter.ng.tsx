@@ -13,7 +13,7 @@ export function Counter({initialValue = input(0)}) {
 
   return (
     <ngx-counter>
-      <h1>{count()}</h1>
+      <h1 style:fontSize={(count() * 2 + 20) + 'px'}>{count()}</h1>
       <button on:click={inc()}>Increment</button>
       @if (isWeirdCount()) {
         <p>Take it slow, dude!</p>
