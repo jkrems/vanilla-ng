@@ -260,8 +260,6 @@ export function stripTSX(fileName, sourceText) {
           }
         }
 
-        console.log(inputs);
-
         const tplText = src.text.slice(
           jsxNode.openingElement.end,
           jsxNode.closingElement.pos

@@ -3,11 +3,6 @@ import {effect, input, signal} from '@angular/core';
 export function Counter({initialValue: init = input(0)}) {
   const count = signal(0);
 
-  // Workaround for inputs not being available at call time.
-  effect(() => {
-    count.set(init());
-  }, {allowSignalWrites: true});
-
   function inc() {
     count.set(count() + 1);
   }
@@ -15,6 +10,9 @@ export function Counter({initialValue: init = input(0)}) {
   function reset() {
     count.set(init());
   }
+
+  // Workaround for inputs not being available at call time.
+  effect(reset, {allowSignalWrites: true});
 
   function isWeirdCount() {
     return count() < 10 || count() > 20;
