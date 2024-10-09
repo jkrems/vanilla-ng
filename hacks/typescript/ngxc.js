@@ -99,9 +99,17 @@ export function stripTSX(fileName, sourceText) {
               ],
               undefined,
               ts.factory.createBlock([
-                ts.factory.createReturnStatement(
+                ts.factory.createExpressionStatement(
                   ts.factory.createCallExpression(
-                    ts.factory.createIdentifier("ctx"),
+                    ts.factory.createParenthesizedExpression(
+                      ts.factory.createCommaListExpression([
+                        ts.factory.createNumericLiteral(0),
+                        ts.factory.createPropertyAccessExpression(
+                          ts.factory.createIdentifier("ctx"),
+                          ts.factory.createIdentifier("ɵɵtemplate")
+                        ),
+                      ])
+                    ),
                     undefined,
                     [ts.factory.createIdentifier("ref")]
                   )
@@ -208,6 +216,52 @@ export function stripTSX(fileName, sourceText) {
         const compFn = findEnclosingFunction(jsxNode);
         const className = compFn.name.escapedText;
 
+        const firstParam = ts.isFunctionDeclaration(compFn)
+          ? compFn.parameters[0]
+          : undefined;
+        const inputs = new Map();
+        if (
+          ts.isParameter(firstParam) &&
+          ts.isObjectBindingPattern(firstParam.name)
+        ) {
+          for (const el of firstParam.name.elements) {
+            const bindingName = el.name;
+            const propName = el.propertyName || bindingName;
+            if (!ts.isIdentifier(propName) || !ts.isIdentifier(bindingName)) {
+              // TODO: Support renaming..?
+              // e.g. {x: y = 20}
+              throw new Error(
+                `Expected identifier but got ${ts.SyntaxKind[el.name.kind]}`
+              );
+            }
+            if (
+              !el.initializer ||
+              !ts.isCallExpression(el.initializer) ||
+              !ts.isIdentifier(el.initializer.expression)
+            ) {
+              throw new Error(
+                `Not sure how to handle param ${propName.escapedText}`
+              );
+            }
+
+            const propKey = propName.escapedText;
+            const propType = el.initializer.expression.escapedText;
+
+            switch (propType) {
+              case "input":
+                inputs.set(propKey, bindingName.escapedText);
+                break;
+
+              default:
+                throw new Error(
+                  `Not sure how to handle param ${propName.escapedText}`
+                );
+            }
+          }
+        }
+
+        console.log(inputs);
+
         const tplText = src.text.slice(
           jsxNode.openingElement.end,
           jsxNode.closingElement.pos
@@ -250,7 +304,20 @@ export function stripTSX(fileName, sourceText) {
             attributes: {},
             specialAttributes: {},
           },
-          inputs: {},
+          inputs: Object.fromEntries(
+            Array.from(inputs.keys(), (inputName) => {
+              return [
+                inputName,
+                {
+                  classPropertyName: inputName,
+                  bindingPropertyName: inputName,
+                  required: false, // ?
+                  isSignal: true, // ?
+                  transformFunction: null,
+                },
+              ];
+            })
+          ),
           declarationListEmitMode: 0 /* Direct */,
           declarations,
           outputs: {},
@@ -296,7 +363,17 @@ export function stripTSX(fileName, sourceText) {
         // Replace with new return value.
         return [
           ...tplStatements,
-          ts.factory.createReturnStatement(templateNode),
+          ts.factory.createReturnStatement(
+            ts.factory.createObjectLiteralExpression([
+              ts.factory.createPropertyAssignment("ɵɵtemplate", templateNode),
+              ...Array.from(inputs, ([inputProp, inputBinding]) => {
+                return ts.factory.createPropertyAssignment(
+                  inputProp,
+                  ts.factory.createIdentifier(inputBinding)
+                );
+              }),
+            ])
+          ),
         ];
       }
     }

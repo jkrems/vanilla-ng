@@ -1,10 +1,19 @@
-import {input, signal} from '@angular/core';
+import {effect, input, signal} from '@angular/core';
 
-export function Counter({initialValue = input(0)}) {
-  const count = signal(initialValue());
+export function Counter({initialValue: init = input(0)}) {
+  const count = signal(0);
+
+  // Workaround for inputs not being available at call time.
+  effect(() => {
+    count.set(init());
+  }, {allowSignalWrites: true});
 
   function inc() {
     count.set(count() + 1);
+  }
+
+  function reset() {
+    count.set(init());
   }
 
   function isWeirdCount() {
@@ -15,6 +24,7 @@ export function Counter({initialValue = input(0)}) {
     <ngx-counter>
       <h1 style:fontSize={(count() * 2 + 20) + 'px'}>{count()}</h1>
       <button on:click={inc()}>Increment</button>
+      <button on:click={reset()}>Reset Count</button>
       @if (isWeirdCount()) {
         <p>Take it slow, dude!</p>
         <em>In if block: {count()}</em>
