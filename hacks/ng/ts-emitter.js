@@ -355,7 +355,7 @@ export class TypeScriptEmitterVisitor {
   }
   visitLiteralArrayExpr(ast, ctx) {
     const items = this.visitAllExpressions(ast.entries, ctx);
-    return ts.factory.createArrayLiteralExpression(items, true);
+    return ts.factory.createArrayLiteralExpression(items);
   }
   visitLiteralMapExpr(ast, ctx) {
     const props = this.visitAllObjects(

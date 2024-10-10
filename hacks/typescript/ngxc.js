@@ -69,16 +69,272 @@ export function stripTSX(fileName, sourceText) {
     return ts.visitNode(tplNode, visitor);
   }
 
-  function patchDefComponentCall(originalNode) {
+  /**
+   *
+   * @param {ts.CallExpression} originalNode
+   * @param {ts.FunctionDeclaration} compFnNode
+   * @returns
+   */
+  function patchDefComponentCall(originalNode, compFnNode) {
     let templateNode;
+    let decls = null;
+    let vars = null;
 
     function visitor(node, context) {
       switch (node.kind) {
         case ts.SyntaxKind.PropertyAssignment:
-          if (
-            ts.isPropertyAssignment(node) &&
-            node.name.escapedText === "template"
-          ) {
+          if (!ts.isPropertyAssignment(node)) break;
+
+          if (node.name.escapedText === "decls") {
+            decls = +node.initializer.text;
+            return ts.factory.updatePropertyAssignment(node, node.name, ts.factory.createNumericLiteral(1));
+          } else if (node.name.escapedText === "vars") {
+            vars = +node.initializer.text;
+            return ts.factory.updatePropertyAssignment(node, node.name, ts.factory.createNumericLiteral(1));
+          } else if (node.name.escapedText === "type") {
+            const oldValue = node.initializer;
+            coreImports.add("inject");
+            coreImports.add("EnvironmentInjector");
+            coreImports.add("runInInjectionContext");
+
+            const firstParam = compFnNode.parameters?.[0];
+            const typeNode = ts.factory.createObjectLiteralExpression(
+              [
+                ts.factory.createPropertyAssignment(
+                  "ɵfac",
+                  ts.factory.createArrowFunction(
+                    undefined,
+                    undefined,
+                    [],
+                    undefined,
+                    undefined,
+                    ts.factory.createBlock(
+                      [
+                        ts.factory.createVariableStatement(undefined, [
+                          ts.factory.createVariableDeclaration(
+                            "ctx",
+                            undefined,
+                            undefined,
+                            ts.factory.createObjectLiteralExpression(
+                              [
+                                // ɵɵinjector: inject(EnvironmentInjector),
+                                ts.factory.createPropertyAssignment(
+                                  "ɵɵinjector",
+                                  ts.factory.createCallExpression(
+                                    ts.factory.createIdentifier("inject"),
+                                    undefined,
+                                    [
+                                      ts.factory.createIdentifier(
+                                        "EnvironmentInjector"
+                                      ),
+                                    ]
+                                  )
+                                ),
+                                // ɵɵtemplateImpl: (rf) => { throw new Error("Template impl called before init"); },
+                                ts.factory.createPropertyAssignment(
+                                  "ɵɵtemplateImpl",
+                                  ts.factory.createArrowFunction(
+                                    undefined,
+                                    undefined,
+                                    [],
+                                    undefined,
+                                    undefined,
+                                    ts.factory.createBlock([
+                                      ts.factory.createThrowStatement(
+                                        ts.factory.createNewExpression(
+                                          ts.factory.createIdentifier("Error"),
+                                          undefined,
+                                          [
+                                            ts.factory.createStringLiteral(
+                                              "Template impl called before init"
+                                            ),
+                                          ]
+                                        )
+                                      ),
+                                    ])
+                                  )
+                                ),
+                                // ɵɵtemplate: (rf) => { ctx.ɵɵtemplateImpl(rf); },
+                                ts.factory.createPropertyAssignment(
+                                  "ɵɵtemplate",
+                                  ts.factory.createArrowFunction(
+                                    undefined,
+                                    undefined,
+                                    [
+                                      ts.factory.createParameterDeclaration(
+                                        undefined,
+                                        undefined,
+                                        "rf"
+                                      ),
+                                    ],
+                                    undefined,
+                                    undefined,
+                                    ts.factory.createBlock([
+                                      ts.factory.createExpressionStatement(
+                                        ts.factory.createCallExpression(
+                                          ts.factory.createPropertyAccessExpression(
+                                            ts.factory.createIdentifier("ctx"),
+                                            "ɵɵtemplateImpl"
+                                          ),
+                                          undefined,
+                                          [ts.factory.createIdentifier("rf")]
+                                        )
+                                      ),
+                                    ])
+                                  )
+                                ),
+                                // ɵɵinitialized: signal(false),
+                                ts.factory.createPropertyAssignment(
+                                  "ɵɵinitialized",
+                                  ts.factory.createCallExpression(
+                                    ts.factory.createIdentifier("signal"),
+                                    undefined,
+                                    [ts.factory.createIdentifier("false")]
+                                  )
+                                ),
+                                // ...(({}) => ({}))({})
+                                ts.factory.createSpreadAssignment(
+                                  ts.factory.createCallExpression(
+                                    ts.factory.createParenthesizedExpression(
+                                      ts.factory.createArrowFunction(
+                                        undefined,
+                                        undefined,
+                                        compFnNode.parameters,
+                                        undefined,
+                                        undefined,
+                                        ts.factory.createParenthesizedExpression(
+                                          ts.factory.createObjectLiteralExpression(
+                                            ts.isObjectBindingPattern(
+                                              firstParam?.name
+                                            )
+                                              ? firstParam.name.elements.map(
+                                                  (param) => {
+                                                    const bindingName =
+                                                      param.name;
+                                                    const propName =
+                                                      param.propertyName ||
+                                                      param.name;
+                                                    return ts.factory.createPropertyAssignment(
+                                                      propName,
+                                                      bindingName
+                                                    );
+                                                  }
+                                                )
+                                              : []
+                                          )
+                                        )
+                                      )
+                                    ),
+                                    undefined,
+                                    [ts.factory.createObjectLiteralExpression()]
+                                  )
+                                ),
+                              ],
+                              true
+                            )
+                          ),
+                        ]),
+                        ts.factory.createReturnStatement(
+                          ts.factory.createIdentifier("ctx")
+                        ),
+                      ],
+                      true
+                    )
+                  )
+                ),
+                ts.factory.createPropertyAssignment(
+                  "prototype",
+                  ts.factory.createObjectLiteralExpression(
+                    [
+                      ts.factory.createPropertyAssignment(
+                        "ngOnInit",
+                        ts.factory.createFunctionExpression(
+                          undefined,
+                          undefined,
+                          "ngOnInit",
+                          undefined,
+                          [],
+                          undefined,
+                          ts.factory.createBlock(
+                            [
+                              // const instance = runInInjectionContext(this.ɵɵinjector, () => Comp(this);
+                              ts.factory.createVariableStatement(undefined, [
+                                ts.factory.createVariableDeclaration(
+                                  "instance",
+                                  undefined,
+                                  undefined,
+                                  ts.factory.createCallExpression(
+                                    ts.factory.createIdentifier(
+                                      "runInInjectionContext"
+                                    ),
+                                    undefined,
+                                    [
+                                      ts.factory.createPropertyAccessExpression(
+                                        ts.factory.createIdentifier("this"),
+                                        "ɵɵinjector"
+                                      ),
+                                      ts.factory.createArrowFunction(
+                                        undefined,
+                                        undefined,
+                                        [],
+                                        undefined,
+                                        undefined,
+                                        ts.factory.createCallExpression(
+                                          oldValue,
+                                          undefined,
+                                          [ts.factory.createIdentifier("this")]
+                                        )
+                                      ),
+                                    ]
+                                  )
+                                ),
+                              ]),
+                              // this.ɵɵtemplateImpl = instance.ɵɵtemplate;
+                              ts.factory.createExpressionStatement(
+                                ts.factory.createAssignment(
+                                  ts.factory.createPropertyAccessExpression(
+                                    ts.factory.createIdentifier("this"),
+                                    "ɵɵtemplateImpl"
+                                  ),
+                                  ts.factory.createPropertyAccessExpression(
+                                    ts.factory.createIdentifier("instance"),
+                                    "ɵɵtemplate"
+                                  )
+                                )
+                              ),
+                              // this.ɵɵinitialized.set(true);
+                              ts.factory.createExpressionStatement(
+                                ts.factory.createCallExpression(
+                                  ts.factory.createPropertyAccessExpression(
+                                    ts.factory.createPropertyAccessExpression(
+                                      ts.factory.createIdentifier("this"),
+                                      "ɵɵinitialized"
+                                    ),
+                                    "set"
+                                  ),
+                                  undefined,
+                                  [ts.factory.createIdentifier("true")]
+                                )
+                              ),
+                            ],
+                            true
+                          )
+                        )
+                      ),
+                    ],
+                    true
+                  )
+                ),
+              ],
+              true
+            );
+            return ts.factory.updatePropertyAssignment(
+              node,
+              node.name,
+              typeNode
+            );
+          }
+          if (node.name.escapedText === "template") {
             templateNode = cleanUpTemplate(node.initializer);
             const newInit = ts.factory.createFunctionExpression(
               undefined,
@@ -89,7 +345,7 @@ export function stripTSX(fileName, sourceText) {
                 ts.factory.createParameterDeclaration(
                   undefined,
                   undefined,
-                  "ref"
+                  "rf"
                 ),
                 ts.factory.createParameterDeclaration(
                   undefined,
@@ -98,23 +354,74 @@ export function stripTSX(fileName, sourceText) {
                 ),
               ],
               undefined,
-              ts.factory.createBlock([
-                ts.factory.createExpressionStatement(
-                  ts.factory.createCallExpression(
-                    ts.factory.createParenthesizedExpression(
-                      ts.factory.createCommaListExpression([
-                        ts.factory.createNumericLiteral(0),
-                        ts.factory.createPropertyAccessExpression(
-                          ts.factory.createIdentifier("ctx"),
-                          ts.factory.createIdentifier("ɵɵtemplate")
-                        ),
-                      ])
+              ts.factory.createBlock(
+                [
+                  ts.factory.createIfStatement(
+                    ts.factory.createBinaryExpression(
+                      ts.factory.createIdentifier("rf"),
+                      ts.SyntaxKind.AmpersandToken,
+                      ts.factory.createNumericLiteral(1)
                     ),
-                    undefined,
-                    [ts.factory.createIdentifier("ref")]
-                  )
-                ),
-              ])
+                    ts.factory.createBlock(
+                      [
+                        ts.factory.createExpressionStatement(
+                          ts.factory.createCallExpression(
+                            ts.factory.createIdentifier("ɵɵtemplate"),
+                            undefined,
+                            [
+                              ts.factory.createNumericLiteral(0),
+                              ts.factory.createPropertyAccessExpression(
+                                ts.factory.createIdentifier("ctx"),
+                                "ɵɵtemplate"
+                              ),
+                              ts.factory.createNumericLiteral(decls),
+                              ts.factory.createNumericLiteral(vars),
+                            ]
+                          )
+                        ),
+                      ],
+                      true
+                    )
+                  ),
+                  ts.factory.createIfStatement(
+                    ts.factory.createBinaryExpression(
+                      ts.factory.createIdentifier("rf"),
+                      ts.SyntaxKind.AmpersandToken,
+                      ts.factory.createNumericLiteral(2)
+                    ),
+                    ts.factory.createBlock(
+                      [
+                        // ɵɵconditional(ctx.ɵɵinitialized() ? 0 : -1);
+                        ts.factory.createExpressionStatement(
+                          ts.factory.createCallExpression(
+                            ts.factory.createIdentifier("ɵɵconditional"),
+                            undefined,
+                            [
+                              ts.factory.createConditionalExpression(
+                                ts.factory.createCallExpression(
+                                  ts.factory.createPropertyAccessExpression(
+                                    ts.factory.createIdentifier("ctx"),
+                                    "ɵɵinitialized"
+                                  )
+                                ),
+                                undefined,
+                                ts.factory.createNumericLiteral(0),
+                                undefined,
+                                ts.factory.createPrefixUnaryExpression(
+                                  ts.SyntaxKind.MinusToken,
+                                  ts.factory.createNumericLiteral(1)
+                                )
+                              ),
+                            ]
+                          )
+                        ),
+                      ],
+                      true
+                    )
+                  ),
+                ],
+                true
+              )
             );
             return ts.factory.updatePropertyAssignment(
               node,
@@ -183,24 +490,6 @@ export function stripTSX(fileName, sourceText) {
               defNode
             )
           ),
-          ts.factory.createExpressionStatement(
-            ts.factory.createAssignment(
-              ts.factory.createPropertyAccessExpression(
-                transformed.name,
-                "ɵfac"
-              ),
-              ts.factory.createArrowFunction(
-                undefined,
-                undefined,
-                [],
-                undefined,
-                undefined,
-                ts.factory.createCallExpression(transformed.name, undefined, [
-                  ts.factory.createObjectLiteralExpression(),
-                ])
-              )
-            )
-          ),
         ];
       }
 
@@ -234,27 +523,38 @@ export function stripTSX(fileName, sourceText) {
                 `Expected identifier but got ${ts.SyntaxKind[el.name.kind]}`
               );
             }
-            if (
-              !el.initializer ||
-              !ts.isCallExpression(el.initializer) ||
-              !ts.isIdentifier(el.initializer.expression)
-            ) {
+            if (!el.initializer || !ts.isCallExpression(el.initializer)) {
               throw new Error(
                 `Not sure how to handle param ${propName.escapedText}`
               );
             }
 
             const propKey = propName.escapedText;
-            const propType = el.initializer.expression.escapedText;
+            const propType = sourceText
+              .slice(
+                el.initializer.expression.pos,
+                el.initializer.expression.end
+              )
+              .trim();
 
             switch (propType) {
               case "input":
-                inputs.set(propKey, bindingName.escapedText);
+                inputs.set(propKey, {
+                  binding: bindingName.escapedText,
+                  required: false,
+                });
+                break;
+
+              case "input.required":
+                inputs.set(propKey, {
+                  binding: bindingName.escapedText,
+                  required: true,
+                });
                 break;
 
               default:
                 throw new Error(
-                  `Not sure how to handle param ${propName.escapedText}`
+                  `Not sure how to handle param ${propName.escapedText} [${propType}]`
                 );
             }
           }
@@ -303,14 +603,14 @@ export function stripTSX(fileName, sourceText) {
             specialAttributes: {},
           },
           inputs: Object.fromEntries(
-            Array.from(inputs.keys(), (inputName) => {
+            Array.from(inputs, ([inputName, { required }]) => {
               return [
                 inputName,
                 {
                   classPropertyName: inputName,
                   bindingPropertyName: inputName,
-                  required: false, // ?
-                  isSignal: true, // ?
+                  required,
+                  isSignal: true,
                   transformFunction: null,
                 },
               ];
@@ -340,8 +640,10 @@ export function stripTSX(fileName, sourceText) {
           new ExternalReferenceResolver()
         );
         const originalDefNode = res.expression.visitExpression(tsVisitor);
-        const { defNode, templateNode } =
-          patchDefComponentCall(originalDefNode);
+        const { defNode, templateNode } = patchDefComponentCall(
+          originalDefNode,
+          compFn
+        );
         metaByFunction.set(compFn, defNode);
 
         const visitor = new JitEmitterVisitor(new ExternalReferenceResolver());
@@ -364,10 +666,31 @@ export function stripTSX(fileName, sourceText) {
           ts.factory.createReturnStatement(
             ts.factory.createObjectLiteralExpression([
               ts.factory.createPropertyAssignment("ɵɵtemplate", templateNode),
-              ...Array.from(inputs, ([inputProp, inputBinding]) => {
+              ts.factory.createPropertyAssignment(
+                "ɵɵinitialized",
+                ts.factory.createCallExpression(
+                  ts.factory.createIdentifier("signal"),
+                  undefined,
+                  [ts.factory.createIdentifier("false")]
+                )
+              ),
+              // This needs to show up on cmp.type.prototype.ngOnInit
+              ts.factory.createPropertyAssignment(
+                "ngOnInit",
+                ts.factory.createFunctionExpression(
+                  undefined,
+                  undefined,
+                  "ngOnInit",
+                  undefined,
+                  [],
+                  undefined,
+                  ts.factory.createBlock([ts.factory.createDebuggerStatement()])
+                )
+              ),
+              ...Array.from(inputs, ([inputProp, { binding }]) => {
                 return ts.factory.createPropertyAssignment(
                   inputProp,
-                  ts.factory.createIdentifier(inputBinding)
+                  ts.factory.createIdentifier(binding)
                 );
               }),
             ])

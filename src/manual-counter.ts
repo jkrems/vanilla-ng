@@ -20,7 +20,7 @@ import {
 } from "@angular/core";
 import { input, signal, inject } from "@angular/core";
 
-export function Counter({ initialValue: init = input(0) }) {
+export function ManualCounter({ initialValue: init = input(0) }) {
   const count = signal(init());
   function inc() {
     count.set(count() + 1);
@@ -31,7 +31,7 @@ export function Counter({ initialValue: init = input(0) }) {
   function isWeirdCount() {
     return count() < 10 || count() > 20;
   }
-  function Counter_Conditional_0_Conditional_6_Template(rf, ctx) {
+  function ManualCounter_Conditional_0_Conditional_6_Template(rf, ctx) {
     if (rf & 1) {
       ɵɵelementStart(0, "p");
       ɵɵtext(1, "Take it slow, dude!");
@@ -47,7 +47,7 @@ export function Counter({ initialValue: init = input(0) }) {
     }
   }
   return {
-    ɵɵtemplate: function Counter_Template(rf, ctx) {
+    ɵɵtemplate: function ManualCounter_Template(rf, ctx) {
       if (rf & 1) {
         var _r1 = ɵɵgetCurrentView();
         ɵɵelementStart(0, "h1");
@@ -56,7 +56,7 @@ export function Counter({ initialValue: init = input(0) }) {
         ɵɵelementStart(2, "button", 0);
         ɵɵlistener(
           "click",
-          function Counter_Conditional_0_Template_button_click_2_listener() {
+          function ManualCounter_Conditional_0_Template_button_click_2_listener() {
             ɵɵrestoreView(_r1);
             var ctx_r12 = ɵɵnextContext();
             return ɵɵresetView(inc());
@@ -67,7 +67,7 @@ export function Counter({ initialValue: init = input(0) }) {
         ɵɵelementStart(4, "button", 0);
         ɵɵlistener(
           "click",
-          function Counter_Conditional_0_Template_button_click_4_listener() {
+          function ManualCounter_Conditional_0_Template_button_click_4_listener() {
             ɵɵrestoreView(_r1);
             var ctx_r12 = ɵɵnextContext();
             return ɵɵresetView(reset());
@@ -75,7 +75,7 @@ export function Counter({ initialValue: init = input(0) }) {
         );
         ɵɵtext(5, "Reset Count");
         ɵɵelementEnd();
-        ɵɵtemplate(6, Counter_Conditional_0_Conditional_6_Template, 4, 1);
+        ɵɵtemplate(6, ManualCounter_Conditional_0_Conditional_6_Template, 4, 1);
       }
       if (rf & 2) {
         var ctx_r1 = ɵɵnextContext();
@@ -89,13 +89,13 @@ export function Counter({ initialValue: init = input(0) }) {
     initialValue: init,
   };
 }
-Counter.ɵcmp = ɵɵdefineComponent({
+ManualCounter.ɵcmp = ɵɵdefineComponent({
   type: {
     prototype: {
       ngOnInit() {
         // 1. Call actual "init code".
         const instance = runInInjectionContext(this.ɵɵinjector, () =>
-          Counter(this)
+          ManualCounter(this)
         );
         // 2. Set actual template.
         this.ɵɵtemplateImpl = instance.ɵɵtemplate;
@@ -124,7 +124,7 @@ Counter.ɵcmp = ɵɵdefineComponent({
       return ctx;
     },
   },
-  selectors: [["ngx-counter"]],
+  selectors: [["manual-counter"]],
   inputs: {
     initialValue: [1, "initialValue"],
   },
@@ -144,4 +144,4 @@ Counter.ɵcmp = ɵɵdefineComponent({
   },
   encapsulation: 2,
 });
-// Counter.ɵfac = () => Counter({});
+// ManualCounter.ɵfac = () => ManualCounter({});

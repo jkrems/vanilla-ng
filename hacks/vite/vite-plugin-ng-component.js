@@ -82,6 +82,9 @@ export default function ngComponent() {
           },{
             type: new WrappedNodeExpr('Counter'),
             moduleName: './counter.ng',
+          },{
+            type: new WrappedNodeExpr('ManualCounter'),
+            moduleName: './manual-counter',
           }] : [];
 
         const meta = {

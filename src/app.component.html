@@ -1,6 +1,4 @@
-<h1>{{ title }}</h1>
-
-<button (click)="toggleDetails()">Show/hide details</button>
+<button (click)="toggleDetails()">{{title}} - Show/hide details</button>
 
 @let showMore = isDetailsEnabled();
 
@@ -8,4 +6,8 @@
   <static-message />
 }
 
-<ngx-counter [initialValue]="2"></ngx-counter>
+<h2>NGX Counter</h2>
+<ngx-counter [initialValue]="1"></ngx-counter>
+
+<h2>Manual Counter</h2>
+<manual-counter [initialValue]="2"></manual-counter>
