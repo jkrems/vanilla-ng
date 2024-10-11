@@ -38,6 +38,7 @@ export function stripTSX(fileName, sourceText) {
     throw new Error("Could not find surrounding function declaration");
   }
 
+  const compImports = new Set();
   const coreImports = new Set();
   class ExternalReferenceResolver {
     resolveExternalReference(ref) {
@@ -49,10 +50,15 @@ export function stripTSX(fileName, sourceText) {
     }
   }
 
+  /**
+   *
+   * @param {*} tplNode
+   * @returns
+   */
   function cleanUpTemplate(tplNode) {
     function visitor(node, context) {
       switch (node.kind) {
-        case ts.SyntaxKind.PropertyAccessExpression:
+        case ts.SyntaxKind.PropertyAccessExpression: {
           if (
             ts.isPropertyAccessExpression(node) &&
             ts.isIdentifier(node.expression) &&
@@ -62,6 +68,43 @@ export function stripTSX(fileName, sourceText) {
             return node.name;
           }
           break;
+        }
+
+        // ɵɵelementStart(0, "MatButton", 0);
+        case ts.SyntaxKind.CallExpression: {
+          if (
+            !ts.isCallExpression(node) ||
+            !ts.isIdentifier(node.expression) ||
+            !["ɵɵelementStart", "ɵɵelement"].includes(
+              node.expression.escapedText
+            ) ||
+            !ts.isLiteralExpression(node.arguments[0]) ||
+            !ts.isLiteralExpression(node.arguments[1])
+          ) {
+            break;
+          }
+          const tagName = node.arguments[1].text;
+
+          if (!/[A-Z]/.test(tagName)) {
+            break;
+          }
+          coreImports.add("ɵɵselectorTag");
+          compImports.add(tagName);
+          return ts.factory.updateCallExpression(
+            node,
+            node.expression,
+            node.typeArguments,
+            [
+              node.arguments[0],
+              ts.factory.createCallExpression(
+                ts.factory.createIdentifier("ɵɵselectorTag"),
+                undefined,
+                [ts.factory.createIdentifier(tagName)]
+              ),
+              ...node.arguments.slice(2),
+            ]
+          );
+        }
       }
       return ts.visitEachChild(node, visitor, context);
     }
@@ -80,17 +123,57 @@ export function stripTSX(fileName, sourceText) {
     let decls = null;
     let vars = null;
 
+    let updatedCompImports = false;
+
     function visitor(node, context) {
       switch (node.kind) {
+        case ts.SyntaxKind.ObjectLiteralExpression: {
+          const patched = ts.visitEachChild(node, visitor, context);
+          if (!updatedCompImports && compImports.size) {
+            return ts.factory.updateObjectLiteralExpression(node, [
+              ...patched.properties,
+              ts.factory.createPropertyAssignment(
+                "dependencies",
+                ts.factory.createArrayLiteralExpression(
+                  Array.from(compImports, (compImport) =>
+                    ts.factory.createIdentifier(compImport)
+                  )
+                )
+              ),
+            ]);
+          }
+          return patched;
+        }
+
         case ts.SyntaxKind.PropertyAssignment:
           if (!ts.isPropertyAssignment(node)) break;
 
           if (node.name.escapedText === "decls") {
             decls = +node.initializer.text;
-            return ts.factory.updatePropertyAssignment(node, node.name, ts.factory.createNumericLiteral(1));
+            return ts.factory.updatePropertyAssignment(
+              node,
+              node.name,
+              ts.factory.createNumericLiteral(1)
+            );
           } else if (node.name.escapedText === "vars") {
             vars = +node.initializer.text;
-            return ts.factory.updatePropertyAssignment(node, node.name, ts.factory.createNumericLiteral(1));
+            return ts.factory.updatePropertyAssignment(
+              node,
+              node.name,
+              ts.factory.createNumericLiteral(1)
+            );
+          } else if (node.name.escapedText === "dependencies") {
+            updatedCompImports = true;
+            return ts.factory.updatePropertyAssignment(
+              node,
+              node.name,
+              ts.factory.createArrayLiteralExpression([
+                ...node.initializer.elements,
+                ...Array.from(compImports, (compImport) =>
+                  ts.factory.createIdentifier(compImport)
+                ),
+              ])
+            );
           } else if (node.name.escapedText === "type") {
             const oldValue = node.initializer;
             coreImports.add("inject");
@@ -446,26 +529,69 @@ export function stripTSX(fileName, sourceText) {
       case ts.SyntaxKind.SourceFile: {
         const patched = ts.visitEachChild(node, visitor, context);
         if (coreImports.size) {
-          return ts.factory.updateSourceFile(patched, [
-            ts.factory.createImportDeclaration(
-              undefined,
-              ts.factory.createImportClause(
-                false,
+          const hasSelectorTagFn = coreImports.has("ɵɵselectorTag");
+          coreImports.delete("ɵɵselectorTag");
+          const stmts = [...patched.statements];
+          if (coreImports.size) {
+            stmts.unshift(
+              ts.factory.createImportDeclaration(
                 undefined,
-                ts.factory.createNamedImports(
-                  Array.from(coreImports, (name) =>
-                    ts.factory.createImportSpecifier(
-                      false,
-                      undefined,
-                      ts.factory.createIdentifier(name)
+                ts.factory.createImportClause(
+                  false,
+                  undefined,
+                  ts.factory.createNamedImports(
+                    Array.from(coreImports, (name) =>
+                      ts.factory.createImportSpecifier(
+                        false,
+                        undefined,
+                        ts.factory.createIdentifier(name)
+                      )
                     )
                   )
+                ),
+                ts.factory.createStringLiteral("@angular/core")
+              )
+            );
+          }
+          if (hasSelectorTagFn) {
+            stmts.push(
+              ts.factory.createFunctionDeclaration(
+                undefined,
+                undefined,
+                "ɵɵselectorTag",
+                undefined,
+                [
+                  ts.factory.createParameterDeclaration(
+                    undefined,
+                    undefined,
+                    "C"
+                  ),
+                ],
+                undefined,
+                ts.factory.createBlock(
+                  [
+                    ts.factory.createReturnStatement(
+                      ts.factory.createElementAccessExpression(
+                        ts.factory.createElementAccessExpression(
+                          ts.factory.createPropertyAccessExpression(
+                            ts.factory.createPropertyAccessExpression(
+                              ts.factory.createIdentifier("C"),
+                              "ɵcmp"
+                            ),
+                            "selectors"
+                          ),
+                          0
+                        ),
+                        0
+                      )
+                    ),
+                  ],
+                  true
                 )
-              ),
-              ts.factory.createStringLiteral("@angular/core")
-            ),
-            ...patched.statements,
-          ]);
+              )
+            );
+          }
+          return ts.factory.updateSourceFile(patched, stmts);
         }
         return patched;
       }
@@ -642,7 +768,8 @@ export function stripTSX(fileName, sourceText) {
         const originalDefNode = res.expression.visitExpression(tsVisitor);
         const { defNode, templateNode } = patchDefComponentCall(
           originalDefNode,
-          compFn
+          compFn,
+          constantPool
         );
         metaByFunction.set(compFn, defNode);
 
@@ -666,33 +793,6 @@ export function stripTSX(fileName, sourceText) {
           ts.factory.createReturnStatement(
             ts.factory.createObjectLiteralExpression([
               ts.factory.createPropertyAssignment("ɵɵtemplate", templateNode),
-              ts.factory.createPropertyAssignment(
-                "ɵɵinitialized",
-                ts.factory.createCallExpression(
-                  ts.factory.createIdentifier("signal"),
-                  undefined,
-                  [ts.factory.createIdentifier("false")]
-                )
-              ),
-              // This needs to show up on cmp.type.prototype.ngOnInit
-              ts.factory.createPropertyAssignment(
-                "ngOnInit",
-                ts.factory.createFunctionExpression(
-                  undefined,
-                  undefined,
-                  "ngOnInit",
-                  undefined,
-                  [],
-                  undefined,
-                  ts.factory.createBlock([ts.factory.createDebuggerStatement()])
-                )
-              ),
-              ...Array.from(inputs, ([inputProp, { binding }]) => {
-                return ts.factory.createPropertyAssignment(
-                  inputProp,
-                  ts.factory.createIdentifier(binding)
-                );
-              }),
             ])
           ),
         ];
