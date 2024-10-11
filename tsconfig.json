@@ -2,10 +2,20 @@
   "compilerOptions": {
     "target": "ES2023",
     "module": "ESNext",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "skipLibCheck": true,
-    "types": ["@vitest/browser/providers/playwright"],
-
+    "types": [
+      "@vitest/browser/providers/playwright"
+    ],
+    "plugins": [
+      {
+        "name": "vscode-ngx/plugin"
+      }
+    ],
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -13,7 +23,6 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "preserve",
-
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
@@ -26,5 +35,7 @@
     "strictTemplates": true,
     "disableTypeScriptVersionCheck": true
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

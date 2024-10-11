@@ -1,0 +1,43 @@
+{
+  "scopeName": "ngx-template.injection",
+  "injectionSelector": "L:source.typescriptngx -text.html -comment",
+  "patterns": [
+    {
+      "include": "#inline-template"
+    }
+  ],
+  "repository": {
+    "inline-template": {
+      "begin": "(<)([a-zA-Z_-$]\\w*)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.tsx"
+        },
+        "2": {
+          "name": "entity.name.tag.namespace.ngx"
+        }
+      },
+      "end": "(</)\\1(>)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.ngx"
+        },
+        "2": {
+          "name": "entity.name.tag.namespace.ngx"
+        },
+        "2": {
+          "name": "punctuation.definition.tag.end.ngx"
+        }
+      },
+      "contentName": "text.html.derivative",
+      "patterns": [
+        {
+          "include": "text.html.derivative"
+        },
+        {
+          "include": "template.ng"
+        }
+      ]
+    }
+  }
+}

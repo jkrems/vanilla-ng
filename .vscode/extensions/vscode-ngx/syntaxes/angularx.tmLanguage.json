@@ -1,0 +1,8 @@
+{
+  "name": "typescriptngx",
+  "scopeName": "source.typescriptngx",
+  "fileTypes": ["typescriptngx"],
+  "patterns": [
+    { "include": "source.ts" }
+  ]
+}

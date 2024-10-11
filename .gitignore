@@ -17,6 +17,7 @@ __screenshots__
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/extensions
 .idea
 .DS_Store
 *.suo

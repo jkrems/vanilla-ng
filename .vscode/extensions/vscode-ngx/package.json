@@ -1,0 +1,36 @@
+{
+  "name": "vscode-ngx",
+  "private": true,
+  "version": "0.0.0",
+  "main": "./ext.js",
+  "contributes": {
+    "grammars": [
+      {
+        "language": "typescriptngx",
+        "scopeName": "source.typescriptngx",
+        "path": "./syntaxes/angularx.tmLanguage.json"
+      },
+      {
+        "path": "./syntaxes/injection.tmLanguage.json",
+        "scopeName": "ngx-template.injection",
+        "injectTo": ["source.typescriptngx"]
+      }
+    ],
+    "languages": [
+      {
+        "id": "typescriptngx",
+        "aliases": [
+          "TypeScript (ngx)"
+        ],
+        "extensions": [
+          ".ng.tsx",
+          ".ngx"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ]
+  },
+  "engines": {
+    "vscode": "^1.22.0"
+  }
+}

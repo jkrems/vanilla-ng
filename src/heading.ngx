@@ -1,0 +1,12 @@
+console.log('ngx!');
+
+/**
+<div>
+</div>
+ */
+
+const x = <div></div>;
+
+return <div>
+  <input name="full-name">
+</div>;
