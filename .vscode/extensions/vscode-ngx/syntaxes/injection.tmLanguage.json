@@ -1,9 +1,10 @@
 {
   "scopeName": "ngx-template.injection",
-  "injectionSelector": "L:source.typescriptngx -text.html -comment",
+  "injectionSelector": "L:source.ts.ngx -text.html -comment",
   "patterns": [
     {
-      "include": "#inline-template"
+      // "include": "#inline-template",
+      "include": "source.ts"
     }
   ],
   "repository": {

@@ -177,7 +177,7 @@ export function stripTSX(fileName, sourceText) {
           } else if (node.name.escapedText === "type") {
             const oldValue = node.initializer;
             coreImports.add("inject");
-            coreImports.add("EnvironmentInjector");
+            coreImports.add("Injector");
             coreImports.add("runInInjectionContext");
 
             const firstParam = compFnNode.parameters?.[0];
@@ -208,7 +208,7 @@ export function stripTSX(fileName, sourceText) {
                                     undefined,
                                     [
                                       ts.factory.createIdentifier(
-                                        "EnvironmentInjector"
+                                        "Injector"
                                       ),
                                     ]
                                   )

@@ -1,8 +1,42 @@
 {
   "name": "typescriptngx",
-  "scopeName": "source.typescriptngx",
-  "fileTypes": ["typescriptngx"],
+  "scopeName": "source.ts.ngx",
+  "fileTypes": ["ngx", "ng.tsx"],
   "patterns": [
     { "include": "source.ts" }
-  ]
+  ],
+  "repository": {
+    "inline-template": {
+      "begin": "(<)([a-zA-Z_-$]\\w*)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.tsx"
+        },
+        "2": {
+          "name": "entity.name.tag.namespace.ngx"
+        }
+      },
+      "end": "(</)\\1(>)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.tag.begin.ngx"
+        },
+        "2": {
+          "name": "entity.name.tag.namespace.ngx"
+        },
+        "2": {
+          "name": "punctuation.definition.tag.end.ngx"
+        }
+      },
+      "contentName": "text.html.derivative",
+      "patterns": [
+        {
+          "include": "text.html.derivative"
+        },
+        {
+          "include": "template.ng"
+        }
+      ]
+    }
+  }
 }

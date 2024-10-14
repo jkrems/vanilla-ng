@@ -7,20 +7,20 @@
     "grammars": [
       {
         "language": "typescriptngx",
-        "scopeName": "source.typescriptngx",
+        "scopeName": "source.ts.ngx",
         "path": "./syntaxes/angularx.tmLanguage.json"
       },
       {
         "path": "./syntaxes/injection.tmLanguage.json",
         "scopeName": "ngx-template.injection",
-        "injectTo": ["source.typescriptngx"]
+        "injectTo": ["source.ngx2"]
       }
     ],
     "languages": [
       {
         "id": "typescriptngx",
         "aliases": [
-          "TypeScript (ngx)"
+          "typescriptngx"
         ],
         "extensions": [
           ".ng.tsx",

@@ -1,15 +1,18 @@
-import {input, signal} from '@angular/core';
+import {inject, input, signal} from '@angular/core';
 import {MatButton} from '@angular/material/button';
 
+import {CalculatorFactory} from './calculator';
+
 export function Counter({initialValue: init = input(0)}) {
-  const count = signal(init());
+  const calc = inject(CalculatorFactory).createCalculator(init());
+  const count = calc.value();
 
   function inc() {
-    count.set(count() + 1);
+    calc.add(1);
   }
 
   function reset() {
-    count.set(init());
+    calc.reset();
   }
 
   function isWeirdCount() {
