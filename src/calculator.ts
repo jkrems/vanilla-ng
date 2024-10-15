@@ -1,5 +1,28 @@
 import { computed, signal } from "@angular/core";
 
+interface Type<T> {
+  new (...args: any[]): T;
+}
+
+interface Providable<T> extends Type<T> {
+  ɵprov?: unknown;
+}
+
+interface InjectableOpts<T> {
+  token?: unknown;
+  providedIn?: Type<T> | 'root' | 'platform' | 'any' | 'environment' | null;
+  factory?: () => T;
+}
+
+function provides<T>(C: Providable<T>, opts: InjectableOpts<T> = {}) {
+  C.ɵprov = {
+      token: opts.token ?? C,
+      factory: opts.factory ?? (() => new C()),
+      providedIn: opts.providedIn || null,
+      value: undefined
+  };
+}
+
 export class Calculator {
   #initialValue: number;
   #value;
@@ -24,12 +47,9 @@ export class Calculator {
 }
 
 export class CalculatorFactory {
-  static ɵprov = /* @__PURE__ */ {
-      token: CalculatorFactory,
-      factory: () => new CalculatorFactory(),
-      providedIn: 'any',
-      value: undefined
-  };
+  static {
+    provides(this, {providedIn: 'any'});
+  }
 
   createCalculator(initialValue: number): Calculator {
     return new Calculator(initialValue);
