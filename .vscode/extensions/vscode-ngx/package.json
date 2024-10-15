@@ -16,7 +16,7 @@
         "injectTo": ["source.ngx2"]
       }
     ],
-    "languages": [
+    "// languages": [
       {
         "id": "typescriptngx",
         "aliases": [

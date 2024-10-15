@@ -1,4 +1,4 @@
-import { computed, signal, ɵɵdefineInjectable } from "@angular/core";
+import { computed, signal } from "@angular/core";
 
 export class Calculator {
   #initialValue: number;
@@ -24,11 +24,12 @@ export class Calculator {
 }
 
 export class CalculatorFactory {
-  static ɵprov = /* @__PURE__ */ ɵɵdefineInjectable({
+  static ɵprov = /* @__PURE__ */ {
       token: CalculatorFactory,
       factory: () => new CalculatorFactory(),
-      providedIn: "any"
-  });
+      providedIn: 'any',
+      value: undefined
+  };
 
   createCalculator(initialValue: number): Calculator {
     return new Calculator(initialValue);
