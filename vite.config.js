@@ -11,4 +11,9 @@ export default defineConfig({
     ngComponent(),
     ngxComponent(),
   ],
+  esbuild: {
+    supported: {
+      decorators: false
+    },
+  },
 });

@@ -10,16 +10,22 @@ interface Providable<T> extends Type<T> {
 
 interface InjectableOpts<T> {
   token?: unknown;
-  providedIn?: Type<T> | 'root' | 'platform' | 'any' | 'environment' | null;
+  providedIn?: Type<T> | "root" | "platform" | "any" | "environment" | null;
   factory?: () => T;
 }
 
 function provides<T>(C: Providable<T>, opts: InjectableOpts<T> = {}) {
   C.ɵprov = {
-      token: opts.token ?? C,
-      factory: opts.factory ?? (() => new C()),
-      providedIn: opts.providedIn || null,
-      value: undefined
+    token: opts.token ?? C,
+    factory: opts.factory ?? (() => new C()),
+    providedIn: opts.providedIn || null,
+    value: undefined,
+  };
+}
+
+function Injectable<T>(opts: InjectableOpts<T> = {}) {
+  return (target: Providable<T>) => {
+    provides(target, opts);
   };
 }
 
@@ -46,9 +52,11 @@ export class Calculator {
   }
 }
 
+@Injectable({ providedIn: "root" })
 export class CalculatorFactory {
   static {
-    provides(this, {providedIn: 'any'});
+    // Alternative, without decorator:
+    // provides(this, { providedIn: "root" });
   }
 
   createCalculator(initialValue: number): Calculator {
